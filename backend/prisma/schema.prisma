@@ -1,0 +1,83 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int      @id @default(autoincrement())
+  name        String
+  email       String   @unique
+  address     String?
+  password    String
+  role        Role     @default(USER)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  ratings     Rating[]
+  ownedStores Store[]  @relation("StoreOwner")
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  USER
+  STORE_OWNER
+}
+
+model Store {
+  id          Int      @id @default(autoincrement())
+  name        String
+  email       String?
+  address     String?
+  ownerId     Int?
+  owner       User?    @relation("StoreOwner", fields: [ownerId], references: [id])
+  ratings     Rating[]
+  avgRating   Float?   @default(0)
+  ratingCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("stores")
+}
+
+model Rating {
+  id        Int      @id @default(autoincrement())
+  score     Int      // 1..5
+  comment   String?
+  userId    Int
+  storeId   Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, storeId])
+  @@map("ratings")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  action    String   // CREATE, UPDATE, DELETE
+  entity    String   // STORE, RATING, USER
+  entityId  Int
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
